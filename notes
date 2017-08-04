@@ -1,0 +1,136 @@
+204
+373
+
+One recurring theme throughout neural network design is that the gradient of
+the cost function must be large and predictable enough to serve as a good guide
+for the learning algorithm. Functions that saturate (become very ﬂat) undermine
+this objective because they make the gradient become very small. In many cases
+this happens because the activation functions used to produce the output of the
+hidden units or the output units saturate. The negative log-likelihood helps to
+avoid this problem for many models. Many output units involve an
+exp
+function
+that can saturate when its argument is very negative. The
+log
+function in the
+negative log-likelihood cost function undoes the
+exp
+of some output units. We will
+discuss the interaction between the cost function and the choice of output unit in
+section 6.2.2.
+
+Unfortunately, mean squared error and mean absolute error often lead to poor
+results when used with gradient-based optimization. Some output units that
+saturate produce very small gradients when combined with these cost functions.
+This is one reason that the cross-entropy cost function is more popular than mean
+squared error or mean absolute error, even when it is not necessary to estimate an
+entire distribution p(y | x).
+
+
+Speciﬁcally, the universal approximation theorem
+(Hornik et al., 1989; Cybenko, 1989) states that a feedforward network with a linear output layer and at least one hidden layer with any “squashing” activation function (such as the logistic sigmoid activation function) can approximate any Borel measurable function from one ﬁnite-dimensional space to another with any desired non-zero amount of error, provided that the network is given enough hidden units. 
+ 
+CHAPTER 6. DEEP FEEDFORWARD NETWORKS
+In these chain-based architectures, the main architectural considerations are
+to choose the depth of the network and the width of each layer. As we will see,
+a network with even one hidden layer is suﬃcient to ﬁt the training set. Deeper
+networks often are able to use far fewer units per layer and far fewer parameters
+and often generalize to the test set, but are also often harder to optimize. The
+ideal network architecture for a task must be found via experimentation guided by
+monitoring the validation set error.
+6.4.1 Universal Approximation Properties and Depth
+A linear model, mapping from features to outputs via matrix multiplication, can
+by deﬁnition represent only linear functions. It has the advantage of being easy to
+train because many loss functions result in convex optimization problems when
+applied to linear models. Unfortunately, we often want to learn nonlinear functions.
+At ﬁrst glance, we might presume that learning a nonlinear function requires
+designing a specialized model family for the kind of nonlinearity we want to learn.
+Fortunately, feedforward networks with hidden layers provide a universal approxi-
+mation framework. Speciﬁcally, the
+universal approximation theorem
+(Hornik
+et al., 1989; Cybenko, 1989) states that a feedforward network with a linear output
+layer and at least one hidden layer with any “squashing” activation function (such
+as the logistic sigmoid activation function) can approximate any Borel measurable
+function from one ﬁnite-dimensional space to another with any desired non-zero
+amount of error, provided that the network is given enough hidden units. The
+derivatives of the feedforward network can also approximate the derivatives of the
+function arbitrarily well (Hornik et al., 1990). The concept of Borel measurability
+is beyond the scope of this book; for our purposes it suﬃces to say that any
+continuous function on a closed and bounded subset of
+R
+n
+is Borel measurable
+and therefore may be approximated by a neural network. A neural network may
+also approximate any function mapping from any ﬁnite dimensional discrete space
+to another. While the original theorems were ﬁrst stated in terms of units with
+activation functions that saturate both for very negative and for very positive
+arguments, universal approximation theorems have also been proved for a wider
+class of activation functions, which includes the now commonly used rectiﬁed linear
+unit (Leshno et al., 1993).
+
+The universal approximation theorem means that regardless of what function
+we are trying to learn, we know that a large MLP will be able to represent this
+function. However, we are not guaranteed that the training algorithm will be able to learn that function. Even if the MLP is able to represent the function, learning can fail for two diﬀerent reasons. First, the optimization algorithm used for training may not be able to ﬁnd the value of the parameters that corresponds to the desired function. Second, the training algorithm might choose the wrong function due to overﬁtting. Recall from section 5.2.1 that the “no free lunch” theorem shows that there is no universally superior machine learning algorithm. Feedforward networks provide a universal system for representing functions, in the sense that, given a function, there exists a feedforward network that approximates the function. There is no universal procedure for examining a training set of speciﬁc examples and choosing a function that will generalize to points not in the training set.
+    
+
+There exist families of functions which can be approximated eﬃciently by an
+architecture with depth greater than some value
+d
+, but which require a much larger
+model if depth is restricted to be less than or equal to
+d
+. In many cases, the number
+of hidden units required by the shallow model is exponential in
+n
+. Such results
+were ﬁrst proved for models that do not resemble the continuous, diﬀerentiable
+neural networks used for machine learning, but have since been extended to these
+models. The ﬁrst results were for circuits of logic gates (Håstad, 1986). Later
+work extended these results to linear threshold units with non-negative weights
+(Håstad and Goldmann, 1991; Hajnal et al., 1993), and then to networks with
+continuous-valued activations (Maass, 1992; Maass et al., 1994). Many modern
+neural networks use rectiﬁed linear units. Leshno et al. (1993) demonstrated
+that shallow networks with a broad family of non-polynomial activation functions, including rectiﬁed linear units, have universal approximation properties, but these results do not address the questions of depth or eﬃciency—they specify only that a suﬃciently wide rectiﬁer network could represent any function. Montufar et al. (2014) showed that functions representable with a deep rectiﬁer net can require an exponential number of hidden units with a shallow (one hidden layer) network.
+More precisely, they showed that piecewise linear networks (which can be obtained from rectiﬁer nonlinearities or maxout units) can represent functions with a number of regions that is exponential in the depth of the network.
+
+377
+The function
+g
+(t)
+takes the whole past sequence (
+x
+(t)
+, x
+(t−1)
+, x
+(t−2)
+, . . . , x
+(2)
+, x
+(1)
+)
+as input and produces the current state, but the unfolded recurrent structure
+allows us to factorize
+g
+(t)
+into repeated application of a function
+f
+. The unfolding
+process thus introduces two major advantages:
+1.
+Regardless of the sequence length, the learned model always has the same
+input size, because it is speciﬁed in terms of transition from one state to
+another state, rather than speciﬁed in terms of a variable-length history of
+states.
+2.
+It is possible to use the same transition function f with the same parameters
+at every time step.
+These two factors make it possible to learn a single model f that operates on all time steps and all sequence lengths, rather than needing to learn a separate
+model g(t) for all possible time steps. Learning a single, shared model allows
+generalization to sequence lengths that did not appear in the training set, and
+allows the model to be estimated with far fewer training examples than would be
+required without parameter sharing.
+ (q: so outlier detection useful?)
+
+  
